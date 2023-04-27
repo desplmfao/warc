@@ -1,31 +1,32 @@
 import { IncomingMessage } from "node:http";
-import https from "node:https";
+import http from "node:http";
 
 type options = {
-    index: string,
-    url?: string,
-    from: string | number,
-    to: string | number,
-    matchType: 'exact' | 'prefix' | 'host' | 'domain', // allowed values
-    limit?: string | number,
-    sort?: string | number,
-    page?: string | number,
-    pageSize?: number | number,
-    showNumPages?: boolean,
-    output?: string,
-}
+	index: string;
+	url?: string;
+	from: string | number;
+	to: string | number;
+	matchType: "exact" | "prefix" | "host" | "domain"; // allowed values
+	limit?: string | number;
+	sort?: string | number;
+	page?: string | number;
+	pageSize?: number | number;
+	showNumPages?: boolean;
+	output?: string;
+};
 
-const agent = new https.Agent({
-	rejectUnauthorized: false,
+const agent = new http.Agent({
+	timeout: 60_000_000,
 });
 
 let commoncrawl = {
 	getIndex() {
 		return new Promise((resolve, reject) => {
-			https
+			http
 				.get(
-					"https://index.commoncrawl.org/collinfo.json",
-					{ agent: agent }, ( res: IncomingMessage ) => {
+					"http://index.commoncrawl.org/collinfo.json",
+					{ agent: agent },
+					(res: IncomingMessage) => {
 						let data = "";
 
 						res.on("data", (chunk: String) => {
@@ -41,16 +42,14 @@ let commoncrawl = {
 							}
 						});
 					},
-				).on("error", (error) => {
+				)
+				.on("error", (error) => {
 					reject(error);
 				});
 		});
 	},
 
-	searchURL(
-        url: string,
-        options: options
-	) {
+	searchURL(url: string, options: options) {
 		let indexid = options.index;
 
 		let params = options;
@@ -70,7 +69,9 @@ let commoncrawl = {
 		return new Promise((resolve, reject) => {
 			console.log("3. in Promise");
 
-			https
+			console.log("http://index.commoncrawl.org" + path);
+
+			http
 				.get(
 					{
 						hostname: "index.commoncrawl.org",
@@ -100,22 +101,23 @@ let commoncrawl = {
 									let itemjson = JSON.parse(item);
 									items.push(itemjson);
 								} catch (e) {
-                                    if (!(e.indexOf("SyntaxError: Unexpected token '<', ") > -1)) {
-                                        console.log(e)
-                                    } else {
-                                        return;
-                                    }
+									if (!(e.toString().startsWith("<") > -1)) {
+										console.log(e);
+									} else {
+										//console.log("500s");
+									}
 								}
 							});
 
 							resolve(items);
 						});
 					},
-				).on("error", (error) => {
+				)
+				.on("error", (error) => {
 					reject(error);
 				});
 		});
 	},
 };
 
-export { options, commoncrawl }
+export { options, commoncrawl };
