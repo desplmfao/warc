@@ -3,16 +3,16 @@ import https from "node:https";
 
 type options = {
 	index: string;
-	url?: string;
+	url: string;
 	from: string | number;
 	to: string | number;
 	matchType: "exact" | "prefix" | "host" | "domain";
-	limit?: string | number;
+	limit: string | number;
 	sort?: string | number;
 	page?: string | number;
 	pageSize?: number | number;
 	showNumPages?: boolean;
-	output?: string;
+	output: string;
 };
 
 const agent = new https.Agent({
