@@ -7,7 +7,7 @@ let options: options = {
 	index: "CC-MAIN-2018-17-index",
 	from: "2017",
 	to: "2018",
-	matchType: "prefix",
+	matchType: "exact",
 	limit: 100,
 	page: 1,
 	pageSize: 100,
