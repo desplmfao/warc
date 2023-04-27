@@ -27,6 +27,8 @@ async function retryRequest(
 	options: https.RequestOptions,
 	retryCount = 0,
 ): Promise<IncomingMessage> {
+    console.log("trying")
+
 	try {
 		return await new Promise<IncomingMessage>((resolve, reject) => {
 			https.get(options, resolve).on("error", reject);
@@ -87,6 +89,8 @@ let commoncrawl = {
 			.join("&");
 
 		let path = `/wayback/${indexid}?${query}`;
+
+        console.log(path)
 
 		return new Promise((resolve, reject) => {
 			retryRequest(
