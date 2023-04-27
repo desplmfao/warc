@@ -76,7 +76,7 @@ let commoncrawl = {
 		});
 	},
 
-	searchURL(options: options) {
+	async searchURL(options: options) {
 		let indexid = options.index;
 
 		let params = options;
@@ -92,60 +92,68 @@ let commoncrawl = {
 
         console.log(path)
 
-		return new Promise((resolve, reject) => {
-			retryRequest(
-				{
-					hostname: "index.commoncrawl.org",
-					path: path,
-					agent: agent,
-				},
-				0,
-			)
-				.then((res: IncomingMessage) => {
-					if (
-						res.statusCode &&
-						res.statusCode >= 200 &&
-						res.statusCode < 300
-					) {
-						let data = "";
+        async function _try() {
+            return new Promise((resolve, reject) => {
+                retryRequest(
+                    {
+                        hostname: "index.commoncrawl.org",
+                        path: path,
+                        agent: agent,
+                    },
+                    0,
+                )
+                    .then(async (res: IncomingMessage) => {
+                        if (
+                            res.statusCode &&
+                            res.statusCode >= 200 &&
+                            res.statusCode < 300
+                        ) {
+                            let data = "";
+    
+                            res.on("data", (chunk: string) => {
+                                data += chunk;
+                            });
+    
+                            res.on("end", () => {
+                                if (options.showNumPages) {
+                                    resolve(JSON.parse(data));
+                                    return;
+                                }
+    
+                                let items: string[] = [];
+                                let stringArray = data.split("\n");
+    
+                                stringArray.map((item) => {
+                                    try {
+                                        console.log(item);
+    
+                                        let itemjson = JSON.parse(item);
+                                        items.push(itemjson);
+                                    } catch (e) {
+                                        if (!(e.toString().startsWith("<") > -1)) {
+                                            console.log(e);
+                                        } else {
+                                            //console.log("500s");
+                                        }
+                                    }
+                                });
+    
+                                resolve(items);
+                            });
+                        } else {
+                            console.log(`HTTP status ${res.statusCode}`);
+                            await _try();
+                        }
+                    }).catch((error) => {
+                        //console.log(error)
+                        reject(error);
+                    });
+            })
+        }
 
-						res.on("data", (chunk: string) => {
-							data += chunk;
-						});
-
-						res.on("end", () => {
-							if (options.showNumPages) {
-								resolve(JSON.parse(data));
-								return;
-							}
-
-							let items: string[] = [];
-							let stringArray = data.split("\n");
-
-							stringArray.map((item) => {
-								try {
-									console.log(item);
-
-									let itemjson = JSON.parse(item);
-									items.push(itemjson);
-								} catch (e) {
-									if (!(e.toString().startsWith("<") > -1)) {
-										console.log(e);
-									} else {
-										//console.log("500s");
-									}
-								}
-							});
-
-							resolve(items);
-						});
-					} else {
-						reject(new Error(`HTTP status ${res.statusCode}`));
-					}
-				}).catch((error) => {
-                    reject(error);
-                });
-        })
+        for (let i = 0; i < RETRY_COUNT; i++) {
+            await _try();
+        }
 	},
 };
 
