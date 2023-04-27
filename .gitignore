@@ -1,8 +1,4 @@
 node_modules
 build
-src/bot/data/soundcloud
-src/bot/data/gists
 package-lock.json
-rclone.exe
-.env
 tmp
