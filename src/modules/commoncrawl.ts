@@ -6,7 +6,7 @@ type options = {
 	url?: string;
 	from: string | number;
 	to: string | number;
-	matchType: "exact" | "prefix" | "host" | "domain"; // allowed values
+	matchType: "exact" | "prefix" | "host" | "domain";
 	limit?: string | number;
 	sort?: string | number;
 	page?: string | number;
@@ -20,31 +20,55 @@ const agent = new https.Agent({
 	timeout: 60_000_000,
 });
 
+const RETRY_COUNT = Infinity;
+const RETRY_DELAY_MS = 5000;
+
+async function retryRequest(
+	options: https.RequestOptions,
+	retryCount = 0,
+): Promise<IncomingMessage> {
+	try {
+		return await new Promise<IncomingMessage>((resolve, reject) => {
+			https.get(options, resolve).on("error", reject);
+		});
+	} catch (err) {
+		if (retryCount < RETRY_COUNT) {
+			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+			return retryRequest(options, retryCount + 1);
+		} else {
+			throw err;
+		}
+	}
+}
+
 let commoncrawl = {
 	getIndex() {
 		return new Promise((resolve, reject) => {
-			https
-				.get(
-					"https://index.commoncrawl.org/collinfo.json",
-					{ agent: agent },
-					(res: IncomingMessage) => {
-						let data = "";
+			retryRequest(
+				{
+					hostname: "index.commoncrawl.org",
+					path: "/collinfo.json",
+					agent: agent,
+				},
+				0,
+			)
+				.then((res: IncomingMessage) => {
+					let data = "";
 
-						res.on("data", (chunk: String) => {
-							data += chunk;
-						});
+					res.on("data", (chunk: string) => {
+						data += chunk;
+					});
 
-						res.on("end", () => {
-							try {
-								let json = JSON.parse(data);
-								resolve(json);
-							} catch (error) {
-								reject(error);
-							}
-						});
-					},
-				)
-				.on("error", (error) => {
+					res.on("end", () => {
+						try {
+							let json = JSON.parse(data);
+							resolve(json);
+						} catch (error) {
+							reject(error);
+						}
+					});
+				})
+				.catch((error) => {
 					reject(error);
 				});
 		});
@@ -64,24 +88,24 @@ let commoncrawl = {
 
 		let path = `/wayback/${indexid}?${query}`;
 
-		console.log("2. after every 'let'");
-
 		return new Promise((resolve, reject) => {
-			console.log("3. in Promise");
-
-			console.log("https://index.commoncrawl.org" + path);
-
-			https
-				.get(
-					{
-						hostname: "index.commoncrawl.org",
-						agent: agent,
-						path: path,
-					},
-					(res: IncomingMessage) => {
+			retryRequest(
+				{
+					hostname: "index.commoncrawl.org",
+					path: path,
+					agent: agent,
+				},
+				0,
+			)
+				.then((res: IncomingMessage) => {
+					if (
+						res.statusCode &&
+						res.statusCode >= 200 &&
+						res.statusCode < 300
+					) {
 						let data = "";
 
-						res.on("data", (chunk: String) => {
+						res.on("data", (chunk: string) => {
 							data += chunk;
 						});
 
@@ -111,12 +135,13 @@ let commoncrawl = {
 
 							resolve(items);
 						});
-					},
-				)
-				.on("error", (error) => {
-					reject(error);
-				});
-		});
+					} else {
+						reject(new Error(`HTTP status ${res.statusCode}`));
+					}
+				}).catch((error) => {
+                    reject(error);
+                });
+        })
 	},
 };
 

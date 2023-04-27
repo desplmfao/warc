@@ -17,8 +17,8 @@ let options: options = {
 
 async function main() {
 	try {
-		//console.log(await commoncrawl.getIndex());
-		await commoncrawl.searchURL(options);
+		console.log(await commoncrawl.getIndex());
+		//await commoncrawl.searchURL(options);
 	} catch (err) {
 		throw new Error(err);
 	}
