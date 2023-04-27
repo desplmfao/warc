@@ -1,5 +1,5 @@
 import { IncomingMessage } from "node:http";
-import http from "node:http";
+import https from "node:https";
 
 type options = {
 	index: string;
@@ -15,16 +15,17 @@ type options = {
 	output?: string;
 };
 
-const agent = new http.Agent({
+const agent = new https.Agent({
+	rejectUnauthorized: false,
 	timeout: 60_000_000,
 });
 
 let commoncrawl = {
 	getIndex() {
 		return new Promise((resolve, reject) => {
-			http
+			https
 				.get(
-					"http://index.commoncrawl.org/collinfo.json",
+					"https://index.commoncrawl.org/collinfo.json",
 					{ agent: agent },
 					(res: IncomingMessage) => {
 						let data = "";
@@ -49,11 +50,10 @@ let commoncrawl = {
 		});
 	},
 
-	searchURL(url: string, options: options) {
+	searchURL(options: options) {
 		let indexid = options.index;
 
 		let params = options;
-		params.url = url;
 
 		let query = Object.entries(params)
 			.map(
@@ -69,9 +69,9 @@ let commoncrawl = {
 		return new Promise((resolve, reject) => {
 			console.log("3. in Promise");
 
-			console.log("http://index.commoncrawl.org" + path);
+			console.log("https://index.commoncrawl.org" + path);
 
-			http
+			https
 				.get(
 					{
 						hostname: "index.commoncrawl.org",
