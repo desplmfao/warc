@@ -4,10 +4,10 @@ let url = "https://soundcloud.com/brahman_ncr";
 
 let options: options = {
 	url: url,
-	index: "CC-MAIN-2018-17-index",
+	index: "CC-MAIN-2017-34-index",
 	from: "2017",
-	to: "2018",
-	matchType: "exact",
+	to: "2017",
+	matchType: "prefix",
 	limit: 100,
 	page: 1,
 	pageSize: 100,
